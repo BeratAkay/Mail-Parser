@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Mail Table</title>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      font-size: 14px;
+    }
+  
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+  
+    th,
+    td {
+      padding: 8px;
+      border-bottom: 2px solid #ddd;
+      border-right: 2px solid #ddd;
+      text-align: left;
+    }
+  
+    th:first-child,
+    td:first-child {
+      border-left: 2px solid #ddd;
+    }
+  
+    .search-filters button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+  
+    .search-filters button:hover {
+      background-color: #45a049;
+    }
+  
+    /* Aktif sayfa bağlantısı */
+    .pagination a.active {
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 50%;
+      padding: 5px;
+    }
+  
+    /* Arama filtreleri */
+    .search-filters {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+  
+    .search-filters label {
+      margin-right: 5px;
+      font-size: 14px;
+      color: #555;
+    }
+  
+    .search-filters input[type="text"] {
+      width: 150px;
+      font-size: 14px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+  </style>
+  
+  
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      var currentPage = 1;
+      var totalPages = 1;
+    
+      // Fetch mails with filters and pagination
+      fetchMails();
+    
+      // Submit filter form
+      $('#filter-form').submit(function (event) {
+        event.preventDefault();
+        currentPage = 1;
+        fetchMails();
+      });
+    
+      // Change page
+      $('.pagination').on('click', 'a', function (event) {
+        event.preventDefault();
+        currentPage = $(this).data('page');
+        fetchMails();
+      });
+    
+      function fetchMails() {
+        var fromAddress = $('#from-address').val();
+        var toAddress = $('#to-address').val();
+        var ccAddress = $('#cc-address').val();
+        var subject = $('#subject').val();
+        var receivedIP = $('#received-ip').val();
+        var uriMail = $('#uri-mail').val();
+        var returnPath = $('#return-path').val();
+        var dkimMail = $('#dkim-mail').val();
+        var attachments = $('#attachments').val();
+        var fromDate = $('#from-date').val();
+        var toDate = $('#to-date').val();
+        var spf = $('#spf').val();
+    
+        $.ajax({
+          url: '/get_mails?page=' + currentPage,
+          method: 'POST',
+          contentType: 'application/json',
+          dataType: 'json',
+          data: JSON.stringify({
+            from_address: fromAddress,
+            to_address: toAddress,
+            cc_address: ccAddress,
+            subject: subject,
+            received_ip: receivedIP,
+            uri_mail: uriMail,
+            return_path: returnPath,
+            dkim_mail: dkimMail,
+            attachments: attachments,
+            from_date: fromDate,
+            to_date: toDate,
+            spf: spf
+          }),
+          success: function (data) {
+            var tableBody = $('#mail-table tbody');
+            tableBody.empty();
+    
+            $.each(data.mails, function (index, mail) {
+              var row = $('<tr>');
+              row.append($('<td>').text(mail.id));
+              row.append($('<td>').text(mail.fromMailAddress));
+              row.append($('<td>').text(mail.toMailAddress));
+              row.append($('<td>').text(mail.ccMailAddress));
+              row.append($('<td>').text(mail.date));
+              row.append($('<td>').text(mail.subject));
+              row.append($('<td>').text(mail.receivedIP));
+              row.append($('<td>').text(mail.uriMail));
+              row.append($('<td>').text(mail.spf));
+              row.append($('<td>').text(mail.returnPath));
+              row.append($('<td>').text(mail.dkimMail));
+              row.append($('<td>').text(mail.attachments));
+              tableBody.append(row);
+            });
+    
+            totalPages = data.total_pages;
+            updatePagination();
+          }
+        });
+      }
+    
+      function updatePagination() {
+        var pagination = $('.pagination');
+        pagination.empty();
+    
+        if (totalPages <= 1) {
+          return;
+        }
+    
+        var previousPage = currentPage - 1;
+        if (previousPage < 1) {
+          previousPage = 1;
+        }
+    
+        var nextPage = currentPage + 1;
+        if (nextPage > totalPages) {
+          nextPage = totalPages;
+        }
+    
+        var previousLink = $('<a>')
+          .attr('href', '#')
+          .data('page', previousPage)
+          .text('Previous');
+    
+        var nextLink = $('<a>')
+          .attr('href', '#')
+          .data('page', nextPage)
+          .text('Next');
+    
+        if (currentPage === 1) {
+          previousLink.addClass('disabled');
+        }
+    
+        if (currentPage === totalPages) {
+          nextLink.addClass('disabled');
+        }
+    
+        pagination.append(previousLink);
+    
+        for (var i = 1; i <= totalPages; i++) {
+          var pageLink = $('<a>')
+            .attr('href', '#')
+            .data('page', i)
+            .text(i);
+    
+          if (i === currentPage) {
+            pageLink.addClass('active');
+          }
+    
+          pagination.append(pageLink);
+        }
+    
+        pagination.append(nextLink);
+      }
+    });
+    
+  </script>
+</head>
+
+<body>
+  <h1> MAIL PARSER</h1>
+  <div class="search-filters">
+    <form id="filter-form">
+      <label for="from-address">From:</label>
+      <input type="text" id="from-address" name="from-address" class="search-input">
+  
+      <label for="to-address">To:</label>
+      <input type="text" id="to-address" name="to-address" class="search-input">
+  
+      <label for="cc-address">CC:</label>
+      <input type="text" id="cc-address" name="cc-address" class="search-input">
+  
+      <label for="subject">Subject:</label>
+      <input type="text" id="subject" name="subject" class="search-input">
+  
+      <label for="received-ip">receivedIP:</label>
+      <input type="text" id="received-ip" name="received-ip" class="search-input">
+  
+      <label for="uri-mail">uriMail:</label>
+      <input type="text" id="uri-mail" name="uri-mail" class="search-input">
+  
+      <label for="return-path">returnPath:</label>
+      <input type="text" id="return-path" name="return-path" class="search-input">
+  
+      <label for="dkim-mail">dkimMail:</label>
+      <input type="text" id="dkim-mail" name="dkim-mail" class="search-input">
+  
+      <label for="attachments">Attachments:</label>
+      <input type="text" id="attachments" name="attachments" class="search-input">
+  
+      <label for="from-date">From Date:</label>
+      <input type="text" id="from-date" name="from-date" class="search-input">
+  
+      <label for="to-date">To Date:</label>
+      <input type="text" id="to-date" name="to-date" class="search-input">
+  
+      <button type="submit">Filter</button>
+    </form>
+  </div>
+
+  
+  <style>
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+  
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+  
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+  
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+  
+    input[type="text"], button {
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+  </style>
+  
+
+  
+  <div class="search-filters">
+    <!-- Filter form content -->
+  </div>
+  
+  <div class="table-container">
+    <table id="mail-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>From</th>
+          <th>To</th>
+          <th>CC</th>
+          <th>Date</th>
+          <th>Subject</th>
+          <th>Received IP</th>
+          <th>URI Mail</th>
+          <th>SPF</th>
+          <th>Return Path</th>
+          <th>DKIM Mail</th>
+          <th>Attachments</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Table content will be dynamically added here -->
+      </tbody>
+    </table>
+  
+    <div class="pagination"></div>
+</body>
+
+</html>

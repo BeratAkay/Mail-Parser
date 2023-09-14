@@ -1,2 +1,3 @@
 # Mail-Parser
- Parsing mail and analyze them
+ Parsing mail and analyze them properly.
+
